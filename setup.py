@@ -11,12 +11,41 @@ class BuildExt(build_ext):
         super().build_extensions()
 
 
+def get_raylib_paths():
+    inc = os.environ.get('RAYLIB_INCLUDE_DIR')
+    lib = os.environ.get('RAYLIB_LIB_DIR')
+    include_dirs = ['.', 'four_rooms']
+    library_dirs = []
+
+    if inc:
+        include_dirs.append(inc)
+    if lib:
+        library_dirs.append(lib)
+
+    # Heuristic for Homebrew on Apple Silicon
+    if os.name == 'posix' and not inc and os.path.isdir('/opt/homebrew/include'):
+        include_dirs.append('/opt/homebrew/include')
+    if os.name == 'posix' and not lib and os.path.isdir('/opt/homebrew/lib'):
+        library_dirs.append('/opt/homebrew/lib')
+
+    return include_dirs, library_dirs
+
+
+inc_dirs, lib_dirs = get_raylib_paths()
+
 binding = Extension(
     name='four_rooms.binding',
     sources=['four_rooms/binding.c'],
-    include_dirs=['.', 'four_rooms'],
-    extra_compile_args=['-O3', '-DNO_RAYLIB=1'],
-    libraries=[],
+    include_dirs=inc_dirs,
+    library_dirs=lib_dirs,
+    extra_compile_args=['-O3'],
+    libraries=['raylib'],
+    extra_link_args=[
+        '-framework', 'Cocoa',
+        '-framework', 'IOKit',
+        '-framework', 'CoreVideo',
+        '-framework', 'OpenGL',
+    ],
 )
 
 setup(
